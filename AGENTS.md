@@ -46,7 +46,7 @@ tracked durable knowledge.
 ## Process
 
 - Forgejo (`git.starintel.actor`) authoritative; GitHub fallback. `tea` for
-  forgejo actions. This repo is currently local-only (no remote yet).
+  forgejo actions. Origin: `starintel-labs/starintel-network` (pushed 2026-09-19).
 - Do NOT touch `/home/unseen/git/worktrees/starintel-pro-actors-rage-29-wigle-ingest`;
   this repo supersedes that landing zone (operator decision 2026-09-19).
 - Commits: concise imperative subject, conventional style (`feat:`, `fix:`,

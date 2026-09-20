@@ -5,5 +5,6 @@
     architecture,
     invariants,
     schema_discipline,
-    upstream_apis
+    upstream_apis,
+    windows_recon
 ].
