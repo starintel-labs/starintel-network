@@ -1,0 +1,21 @@
+# python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# prolog verification runtime state (durable knowledge lives in .prolog/kb)
+.prolog/runs/
+.prolog/facts.kb
+.prolog/verify.pl
+.prolog/result.json
+.prolog/sessions/
+
+# local
+.env
+*.jsonl.tmp

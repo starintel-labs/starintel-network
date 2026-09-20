@@ -1,0 +1,85 @@
+# StarIntel network actor fleet (WiGLE + Kismet).
+#
+# Single actor:    docker compose up kismet
+# Batch collector: docker compose run --rm wigle search --bbox "37.0,-96.0,38.0,-95.0"
+# Manifests:       docker compose run --rm actor-manifests --jsonl /dev/stdout
+#
+# Configuration comes from the environment (see README).  Never commit real
+# secrets.  Delivery over RabbitMQ is at-least-once: emitters use
+# deterministic document identity so replays dedupe downstream.
+
+x-actor-env: &actor-env
+  STARINTEL_RABBITMQ_URL: ${STARINTEL_RABBITMQ_URL:-amqp://guest:guest@rabbitmq/}
+  STARINTEL_RABBITMQ_EXCHANGE: ${STARINTEL_RABBITMQ_EXCHANGE:-documents}
+  STARINTEL_DATASET: ${STARINTEL_DATASET:-}
+
+x-actor-defaults: &actor-defaults
+  restart: unless-stopped
+  depends_on:
+    rabbitmq:
+      condition: service_healthy
+  environment: *actor-env
+  healthcheck:
+    test:
+      - CMD
+      - python
+      - -c
+      - "import os,socket; url=os.environ['STARINTEL_RABBITMQ_URL'].split('@')[1].split('/')[0]; host,port=url.rsplit(':',1); socket.create_connection((host,int(port)), timeout=3).close()"
+    interval: 30s
+    timeout: 5s
+    retries: 3
+    start_period: 15s
+
+x-build: &build
+  context: .
+  dockerfile: docker/Dockerfile
+
+services:
+  rabbitmq:
+    image: rabbitmq:4.3-management
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    ports:
+      # Loopback only: actors reach the broker over the compose network.
+      - "${RABBITMQ_HOST_BIND:-127.0.0.1}:${RABBITMQ_HOST_PORT:-5672}:5672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  kismet:
+    <<: *actor-defaults
+    environment:
+      <<: *actor-env
+      STARINTEL_KISMET_URL: ${STARINTEL_KISMET_URL:-http://host.kismet.internal:2501}
+      KISMET_TOKEN: ${KISMET_TOKEN:-}
+      KISMET_USER: ${KISMET_USER:-}
+      KISMET_PASSWORD: ${KISMET_PASSWORD:-}
+    build: { <<: *build, target: kismet }
+    command: ["--url", "${STARINTEL_KISMET_URL:-http://host.kismet.internal:2501}", "--interval", "${STARINTEL_KISMET_INTERVAL:-30}"]
+
+  wigle:
+    <<: *actor-defaults
+    profiles: ["batch"]
+    restart: "no"
+    environment:
+      <<: *actor-env
+      STARINTEL_WIGLE_API_NAME: ${STARINTEL_WIGLE_API_NAME:-}
+      STARINTEL_WIGLE_API_TOKEN: ${STARINTEL_WIGLE_API_TOKEN:-}
+    build: { <<: *build, target: wigle }
+    command: ["search", "--help"]
+
+  actor-manifests:
+    <<: *actor-defaults
+    profiles: ["tools"]
+    restart: "no"
+    build: { <<: *build, target: actor-manifests }
+
+volumes:
+  rabbitmq-data:

@@ -1,0 +1,62 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "starintel-network"
+version = "0.1.0"
+description = "StarIntel wireless/network actors: WiGLE and Kismet collectors"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "AGPL-3.0-or-later" }
+authors = [{ name = "lost-rob0t" }]
+dependencies = [
+  "httpx>=0.28.1",
+  "jsonschema>=4.23.0",
+  "pika>=1.3,<2",
+  "pykka>=4.4,<5",
+]
+
+[project.optional-dependencies]
+dev = [
+  "mypy>=1.14.1",
+  "pytest>=8.3.4",
+  "pytest-asyncio>=0.25.2",
+  "ruff>=0.9.3",
+  "types-jsonschema>=4.23.0.20241208",
+]
+
+[project.scripts]
+starnet = "starintel_network.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/starintel_network"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "ASYNC"]
+ignore = [
+  "ASYNC109", # actor/backend APIs carry explicit request timeout policy
+  "B027",  # lifecycle hooks are intentionally optional
+  "E501",  # protocol literals are clearer unwrapped
+  "SIM103", # explicit deny checks read better in mapping policy
+  "UP035", # typing import remains compatible with older tooling
+]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["starintel_network"]
+[[tool.mypy.overrides]]
+module = [
+  "pika.*",
+  "pykka.*",
+]
+ignore_missing_imports = true
