@@ -19,3 +19,4 @@ dist/
 # local
 .env
 *.jsonl.tmp
+.prolog/.facts.lock
